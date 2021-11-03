@@ -1,13 +1,13 @@
 # Adding BOTSv1 Data to Security Onion
-[Security Onion](https://github.com/Security-Onion-Solutions/securityonion) is an interesting platform to carry endpoint threat hunting and is useful both in a production situation as well as for research and training. For research and training purposes a key part is to add sample data to be able to practice hunting queries.
+[Security Onion](https://github.com/Security-Onion-Solutions/securityonion) is a platform developed for endpoint threat hunting and can be deployed in a larger production environment down to a small home environment for research and training. For research and training purposes a key part is to add sample data to be able to practice hunting queries.
 
 ## Purpose
-Splunk provides sample data from it's BOSS of the SOC CTF. Both v1,v2, and v3 has been published as open source, more info [here](https://www.splunk.com/en_us/blog/security/boss-of-the-soc-scoring-server-questions-and-answers-and-dataset-open-sourced-and-ready-for-download.html). The v1 data is available on [github here](https://github.com/splunk/botsv1) unfortunately it is formatted for ingestion into Splunk. 
-The goal is to import into Security Onion and to mimic efforts that have been done in HELK platform outlined by [tvfischer](https://gist.github.com/tvfischer/fdc4a1a05613279a5685dc4db4f83fe4). Sébastien Lehuédé has converted the data and done the work to ingest it into ELK. The process to covert the data and associated data and configuration files are published [here](https://botes.gitbook.io/botes-dataset/) under the label [**BOTES**](https://botes.gitbook.io/botes-dataset/). 
+Splunk provides sample data from it's BOSS of the SOC CTF. Version 1, 2, and 3 has been published as open source, more info [here](https://www.splunk.com/en_us/blog/security/boss-of-the-soc-scoring-server-questions-and-answers-and-dataset-open-sourced-and-ready-for-download.html). The v1 data is available on [github here](https://github.com/splunk/botsv1) unfortunately it is formatted for ingestion into Splunk. 
+The overall goal is to import into Security Onion and to mimic efforts that have been done in HELK platform outlined by [tvfischer](https://gist.github.com/tvfischer/fdc4a1a05613279a5685dc4db4f83fe4). As detailed by tvfischer, Sébastien Lehuédé has converted the data and done the work to ingest it into ELK. The process to covert the data and associated data and configuration files are published [here](https://botes.gitbook.io/botes-dataset/) under the label [**BOTES**](https://botes.gitbook.io/botes-dataset/). Developing this walk-through was a collaborative effort with [billy_sec]() and [cajanrubberduck](). 
 
 ## Requirements
 Before proceeding, prepare your environment and have the following deployed on your instance:
-- Deployed Security Onion, preferably using the Standalone or Import configuration type
+- Deployed Security Onion, preferably using the Standalone or Import configuration type. Import is recommended for at home use
 - Have enough space to copy the datasets and load them into the system (data sizes are discussed [here](https://botes.gitbook.io/botes-dataset/botes-elastic-bots-version))
 
 ## Process to Ingest BOTES Data
@@ -62,7 +62,7 @@ The first step is to make sure your have everything ready and all the data loade
    - output.conf
 
 ### Step 1: Configure Elasticsearch BOTES Template  ????
-First step is to load the index into the elasticsearch instance:
+This step is to load the index into the elasticsearch instance:
 
     cd ~/Desktop/botes/
     curl -XPUT 'http://<helk-elasticsearch>:9200/_template/botes' \
@@ -71,7 +71,7 @@ First step is to load the index into the elasticsearch instance:
 
 
 ### Step 2: Prepare the Logstash Configuration
-The logstash configuration files assume the data is in `/usr/share/logstash/botes`; while the concifguration files will look for that location the data files will be located in `/nsm/logstash/`.
+The logstash configuration files assume the data is in `/usr/share/logstash/botes`; while the configuration files will look for that location the data files will be located in `/nsm/logstash/`.
 All logstash bind locations can be viewed in `/opt/so/saltstack/default/salt/logstash/init.sls`
 
 #### First sub-step is to edit each INPUT configuration file
@@ -128,7 +128,7 @@ Repeat these changes for each of the `input-*.conf` files.
 
 #### Second sub-step is to edit the output configuration file
 
-Edit the output configuration file adding in the command setting the "ES" variable for the host and configure to use ssl, the following changes need to be made:
+Edit the output configuration file adding in the command setting the "ES" variable for the host, configure to use ssl, and rename file with the .jinja extension. The following changes need to be made:
 
 **Original output.conf file**
 ```
@@ -158,11 +158,7 @@ output { if "botes" in [tags]{
 Next step is to copy the configuration files to the Logstash volumes.
 ```
 cd ~/Desktop/botes/
-cp input-winevent-application.conf \
-  input-winevent-security.conf \
-  input-winevent-system.conf \
-  input-winregistry.conf \
-  input-winevent-sysmon.conf output.conf /opt/so/saltstack/local/salt/logstash/pipelines/config/custom/
+cp *.conf /opt/so/saltstack/local/salt/logstash/pipelines/config/custom/
 ```
 ### Step 3: Add Config locations to `manager.sls` and `search.sls`
 All input paths need to be added to the `manager.sls` and the output.config.jinja path needs to be added to the `search.sls`. Both are located in `/opt/so/saltstack/default/pillar/logstash`
